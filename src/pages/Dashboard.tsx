@@ -6,13 +6,18 @@ import {
   Brain,
   LineChart,
   Loader2,
-  ChevronRight,
   Filter,
-  ZoomIn,
   Activity,
   Download,
+  AudioWaveform as Waveform,
+  Gauge,
+  BarChart3,
+  FileSpreadsheet,
+  AlertCircle,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom"; // Import useNavigate
+import { useNavigate } from "react-router-dom";
 
 const channels = [
   "Fp1",
@@ -49,33 +54,62 @@ const frequencyBands = [
   { name: "Gamma", range: ">30 Hz", color: "purple" },
 ];
 
-export default function Dashboard({
-  onViewReport,
-}: {
-  onViewReport: (id: string) => void;
-}) {
+export default function Dashboard() {
+  const navigate = useNavigate();
   const [selectedFile, setSelectedFile] = useState("s00");
   const [data, setData] = useState<EEGData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
+  const [analysisStatus, setAnalysisStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
   const [selectedChannels, setSelectedChannels] = useState<string[]>(channels);
   const [timeWindow, setTimeWindow] = useState<[number, number]>([0, 1000]);
   const [amplitudeScale, setAmplitudeScale] = useState(1);
   const [showFrequencyBands, setShowFrequencyBands] = useState(false);
+  const [analysisStep, setAnalysisStep] = useState<number>(0);
 
-  const navigate = useNavigate(); // Initialize useNavigate
+  const analysisSteps = [
+    {
+      title: "Time Features",
+      description: "Calculating temporal characteristics and patterns",
+      icon: <Waveform className="w-5 h-5" />,
+    },
+    {
+      title: "Frequency Features",
+      description: "Analyzing frequency bands and spectral properties",
+      icon: <Gauge className="w-5 h-5" />,
+    },
+    {
+      title: "Advanced Features",
+      description: "Extracting complex neural patterns",
+      icon: <BarChart3 className="w-5 h-5" />,
+    },
+    {
+      title: "Visualizations",
+      description: "Generating comprehensive visual representations",
+      icon: <LineChart className="w-5 h-5" />,
+    },
+    {
+      title: "Report",
+      description: "Compiling analysis results and insights",
+      icon: <FileSpreadsheet className="w-5 h-5" />,
+    },
+  ];
+
+  useEffect(() => {
+    loadData(selectedFile);
+  }, [selectedFile]);
 
   const loadData = async (filename: string) => {
     setLoading(true);
     setError(null);
     try {
       const response = await fetch(`/data/${filename}.csv`);
-      if (!response.ok) {
-        throw new Error(`Failed to load ${filename}.csv`);
-      }
-      const csvText = await response.text();
+      if (!response.ok) throw new Error(`Failed to load ${filename}.csv`);
 
+      const csvText = await response.text();
       const parsedData = Papa.parse(csvText, {
         delimiter: ",",
         skipEmptyLines: true,
@@ -99,29 +133,32 @@ export default function Dashboard({
     }
   };
 
-  useEffect(() => {
-    loadData(selectedFile);
-  }, [selectedFile]);
   const handleAnalyze = async () => {
     setAnalyzing(true);
+    setAnalysisStatus("loading");
+    setAnalysisStep(0);
+
     try {
-      const filename = `${selectedFile}.csv`; // Use the selected file dynamically
+      const filename = `${selectedFile}.csv`;
       const requestBody = JSON.stringify({ filename });
 
-      console.log("Sending request to API with body:", requestBody);
+      // Simulate progress through analysis steps
+      const progressInterval = setInterval(() => {
+        setAnalysisStep((prev) =>
+          prev < analysisSteps.length - 1 ? prev + 1 : prev
+        );
+      }, 2000);
 
       const response = await fetch(
         "https://eeg-analyzer-production.up.railway.app/analyze-eeg",
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
+          headers: { "Content-Type": "application/json" },
           body: requestBody,
         }
       );
 
-      console.log("API response status:", response.status);
+      clearInterval(progressInterval);
 
       if (!response.ok) {
         const errorResponse = await response.text();
@@ -130,16 +167,41 @@ export default function Dashboard({
       }
 
       const result = await response.json();
-      console.log("Analysis result:", result);
+      setAnalysisStatus("success");
 
-      // Navigate to the ReportPage with the analysis results
-      navigate("/report", { state: { files: result.files } });
+      // Show success message briefly before navigating
+      setTimeout(() => {
+        navigate("/report", { state: { files: result.files } });
+      }, 1500);
     } catch (err) {
       console.error("Error analyzing EEG data:", err);
-      alert("Error analyzing EEG data. Please try again.");
-    } finally {
-      setAnalyzing(false);
+      setAnalysisStatus("error");
+      setTimeout(() => {
+        setAnalysisStatus("idle");
+        setAnalyzing(false);
+      }, 3000);
     }
+  };
+
+  const handleExportData = () => {
+    if (data.length === 0) {
+      alert("No data to export.");
+      return;
+    }
+
+    const csv = Papa.unparse(data, {
+      quotes: true,
+      delimiter: ",",
+      header: true,
+    });
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = `${selectedFile}_export.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const toggleChannel = (channel: string) => {
@@ -176,9 +238,9 @@ export default function Dashboard({
                 ))}
               </select>
               <button
-                onClick={handleAnalyze} // Ensure this is correct
+                onClick={handleAnalyze}
                 disabled={loading || analyzing}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center gap-2 px-4 py-2 text-sm bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-md hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
               >
                 <Activity className="w-4 h-4" />
                 {analyzing ? "Analyzing..." : "Analyze"}
@@ -190,7 +252,10 @@ export default function Dashboard({
                 <Filter className="w-4 h-4" />
                 Frequency Bands
               </button>
-              <button className="flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-300 text-gray-600 rounded-md hover:bg-gray-50 transition-colors">
+              <button
+                onClick={handleExportData}
+                className="flex items-center gap-2 px-3 py-1.5 text-sm border border-gray-300 text-gray-600 rounded-md hover:bg-gray-50 transition-colors"
+              >
                 <Download className="w-4 h-4" />
                 Export Data
               </button>
@@ -242,10 +307,10 @@ export default function Dashboard({
               <button
                 key={channel}
                 onClick={() => toggleChannel(channel)}
-                className={`px-2 py-1 text-xs rounded ${
+                className={`px-2 py-1 text-xs rounded transition-all ${
                   selectedChannels.includes(channel)
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-200 text-gray-600"
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "bg-gray-200 text-gray-600 hover:bg-gray-300"
                 }`}
               >
                 {channel}
@@ -282,7 +347,7 @@ export default function Dashboard({
             </div>
           ) : error ? (
             <div className="text-center text-red-600 py-8">
-              <Brain className="w-12 h-12 mx-auto mb-4" />
+              <AlertCircle className="w-12 h-12 mx-auto mb-4" />
               <p>{error}</p>
               <button
                 onClick={() => loadData(selectedFile)}
@@ -315,6 +380,80 @@ export default function Dashboard({
           )}
         </div>
       </div>
+
+      {/* Analysis Progress Modal */}
+      {analyzing && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl max-w-md w-full mx-4 overflow-hidden shadow-xl">
+            <div className="p-6">
+              <div className="flex items-center justify-center mb-6">
+                {analysisStatus === "loading" && (
+                  <Brain className="w-12 h-12 text-blue-600 animate-pulse" />
+                )}
+                {analysisStatus === "success" && (
+                  <CheckCircle2 className="w-12 h-12 text-green-500" />
+                )}
+                {analysisStatus === "error" && (
+                  <XCircle className="w-12 h-12 text-red-500" />
+                )}
+              </div>
+
+              <h3 className="text-xl font-semibold text-center text-gray-900 mb-2">
+                {analysisStatus === "loading" && "Analyzing EEG Data"}
+                {analysisStatus === "success" && "Analysis Complete"}
+                {analysisStatus === "error" && "Analysis Failed"}
+              </h3>
+
+              <p className="text-sm text-center text-gray-600 mb-8">
+                {analysisStatus === "loading" &&
+                  "Please wait while we process your EEG data"}
+                {analysisStatus === "success" && "Redirecting to results..."}
+                {analysisStatus === "error" && "Please try again later"}
+              </p>
+
+              {analysisStatus === "loading" && (
+                <div className="space-y-4">
+                  {analysisSteps.map((step, index) => (
+                    <div
+                      key={step.title}
+                      className={`flex items-center gap-4 p-3 rounded-lg transition-all duration-300 ${
+                        index === analysisStep
+                          ? "bg-blue-50 scale-105"
+                          : index < analysisStep
+                          ? "opacity-50"
+                          : "opacity-30"
+                      }`}
+                    >
+                      <div
+                        className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                          index === analysisStep
+                            ? "bg-blue-600 text-white"
+                            : "bg-gray-100 text-gray-400"
+                        }`}
+                      >
+                        {step.icon}
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-gray-900">
+                          {step.title}
+                        </h4>
+                        <p className="text-sm text-gray-600">
+                          {step.description}
+                        </p>
+                      </div>
+                      {index === analysisStep && (
+                        <div className="ml-auto">
+                          <Loader2 className="w-5 h-5 text-blue-600 animate-spin" />
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
