@@ -58,7 +58,7 @@ export default function Home() {
 
               <div className="flex flex-col sm:flex-row gap-4">
                 <button
-                  onClick={() => onNavigate("dashboard")}
+                  onClick={() => onNavigate("/dashboard")}
                   className="group bg-blue-600 text-white px-8 py-4 rounded-xl hover:bg-blue-700 transition-all transform hover:scale-105 flex items-center justify-center space-x-2"
                 >
                   <span>Start Analysis</span>

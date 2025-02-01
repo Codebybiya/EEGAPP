@@ -66,6 +66,11 @@ const ReportPage: React.FC = () => {
     name.toLowerCase().includes("eeg_analysis_report")
   );
 
+  // Filter out the main PDF report from the files to display in the grid
+  const displayFiles = Object.entries(files).filter(
+    ([name]) => !name.toLowerCase().includes("eeg_analysis_report")
+  );
+
   return (
     <div className="max-w-7xl mx-auto p-6">
       <div className="bg-white rounded-xl shadow-lg p-8">
@@ -104,9 +109,8 @@ const ReportPage: React.FC = () => {
 
         {/* File Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Object.entries(files).map(([name, url]) => {
+          {displayFiles.map(([name, url]) => {
             const imageUrl = getValidImageUrl(url);
-            const isPdf = name.toLowerCase().endsWith(".pdf");
 
             return (
               <div
@@ -115,23 +119,14 @@ const ReportPage: React.FC = () => {
               >
                 {/* Preview Area */}
                 <div className="relative aspect-video bg-gray-50 flex items-center justify-center">
-                  {isPdf ? (
-                    <div className="flex flex-col items-center justify-center p-4">
-                      <FileText className="w-12 h-12 text-blue-600 mb-2" />
-                      <span className="text-sm text-gray-600 text-center break-all">
-                        {name}
-                      </span>
-                    </div>
-                  ) : (
-                    <img
-                      src={imageUrl}
-                      alt={name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.src = "/placeholder.png";
-                      }}
-                    />
-                  )}
+                  <img
+                    src={imageUrl}
+                    alt={name}
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      e.currentTarget.src = "/placeholder.png";
+                    }}
+                  />
 
                   {/* Hover Overlay */}
                   <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
@@ -156,11 +151,7 @@ const ReportPage: React.FC = () => {
                 <div className="p-4 border-t border-gray-100">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-2">
-                      {isPdf ? (
-                        <FileText className="w-4 h-4 text-blue-600" />
-                      ) : (
-                        <ImageIcon className="w-4 h-4 text-blue-600" />
-                      )}
+                      <ImageIcon className="w-4 h-4 text-blue-600" />
                       <span className="text-sm font-medium text-gray-700">
                         {name.length > 20
                           ? `${name.substring(0, 20)}...`
@@ -203,19 +194,11 @@ const ReportPage: React.FC = () => {
               </button>
             </div>
             <div className="p-4">
-              {selectedFile.toLowerCase().endsWith(".pdf") ? (
-                <iframe
-                  src={selectedFile}
-                  className="w-full h-[70vh]"
-                  title="PDF Preview"
-                />
-              ) : (
-                <img
-                  src={selectedFile}
-                  alt="Preview"
-                  className="max-w-full h-auto"
-                />
-              )}
+              <img
+                src={selectedFile}
+                alt="Preview"
+                className="max-w-full h-auto"
+              />
             </div>
           </div>
         </div>

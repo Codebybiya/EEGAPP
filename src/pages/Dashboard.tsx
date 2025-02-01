@@ -65,7 +65,7 @@ export default function Dashboard() {
     "idle" | "loading" | "success" | "error"
   >("idle");
   const [selectedChannels, setSelectedChannels] = useState<string[]>(channels);
-  const [timeWindow, setTimeWindow] = useState<[number, number]>([0, 1000]);
+  const [timeWindow, setTimeWindow] = useState<[number, number]>([0, 8000]);
   const [amplitudeScale, setAmplitudeScale] = useState(1);
   const [showFrequencyBands, setShowFrequencyBands] = useState(false);
   const [analysisStep, setAnalysisStep] = useState<number>(0);
@@ -371,8 +371,8 @@ export default function Dashboard() {
               ))}
               <div className="h-6 relative border-t mt-2">
                 <div className="absolute bottom-0 left-0 right-0 flex justify-between px-4 text-xs text-gray-500">
-                  {[...Array(6)].map((_, i) => (
-                    <span key={i}>{i * 200}ms</span>
+                  {[...Array(9)].map((_, i) => (
+                    <span key={i}>{i * 1000}ms</span>
                   ))}
                 </div>
               </div>
