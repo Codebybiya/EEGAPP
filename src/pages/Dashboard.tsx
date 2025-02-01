@@ -12,6 +12,7 @@ import {
   Activity,
   Download,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom"; // Import useNavigate
 
 const channels = [
   "Fp1",
@@ -63,11 +64,12 @@ export default function Dashboard({
   const [amplitudeScale, setAmplitudeScale] = useState(1);
   const [showFrequencyBands, setShowFrequencyBands] = useState(false);
 
+  const navigate = useNavigate(); // Initialize useNavigate
+
   const loadData = async (filename: string) => {
     setLoading(true);
     setError(null);
     try {
-      // Fetch CSV file from the public/data folder
       const response = await fetch(`/data/${filename}.csv`);
       if (!response.ok) {
         throw new Error(`Failed to load ${filename}.csv`);
@@ -96,13 +98,48 @@ export default function Dashboard({
       setLoading(false);
     }
   };
+
   useEffect(() => {
     loadData(selectedFile);
   }, [selectedFile]);
-
-  const handleAnalyze = () => {
+  const handleAnalyze = async () => {
     setAnalyzing(true);
-    setTimeout(() => setAnalyzing(false), 1000);
+    try {
+      const filename = `${selectedFile}.csv`; // Use the selected file dynamically
+      const requestBody = JSON.stringify({ filename });
+
+      console.log("Sending request to API with body:", requestBody);
+
+      const response = await fetch(
+        "https://eeg-analyzer-production.up.railway.app/analyze-eeg",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: requestBody,
+        }
+      );
+
+      console.log("API response status:", response.status);
+
+      if (!response.ok) {
+        const errorResponse = await response.text();
+        console.error("API error response:", errorResponse);
+        throw new Error("Failed to analyze EEG data");
+      }
+
+      const result = await response.json();
+      console.log("Analysis result:", result);
+
+      // Navigate to the ReportPage with the analysis results
+      navigate("/report", { state: { files: result.files } });
+    } catch (err) {
+      console.error("Error analyzing EEG data:", err);
+      alert("Error analyzing EEG data. Please try again.");
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   const toggleChannel = (channel: string) => {
@@ -139,7 +176,7 @@ export default function Dashboard({
                 ))}
               </select>
               <button
-                onClick={handleAnalyze}
+                onClick={handleAnalyze} // Ensure this is correct
                 disabled={loading || analyzing}
                 className="flex items-center gap-2 px-3 py-1.5 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
