@@ -67,7 +67,10 @@ export default function Dashboard({
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/src/data/${filename}.csv`);
+      // Adjust the path based on the environment
+      const basePath =
+        process.env.NODE_ENV === "production" ? "/data" : "/src/data";
+      const response = await fetch(`${basePath}/${filename}.csv`);
       if (!response.ok) {
         throw new Error(`Failed to load ${filename}.csv`);
       }
