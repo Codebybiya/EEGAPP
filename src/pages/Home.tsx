@@ -65,7 +65,7 @@ export default function Home() {
                   <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </button>
                 <button
-                  onClick={() => onNavigate("learn-more")}
+                  onClick={() => onNavigate("#")}
                   className="group px-8 py-4 border-2 border-blue-600 text-blue-600 rounded-xl hover:bg-blue-50 transition-all flex items-center justify-center space-x-2"
                 >
                   <span>Watch Demo</span>
@@ -135,7 +135,7 @@ export default function Home() {
               platform supports all major EEG recording systems.
             </p>
             <button
-              onClick={() => onNavigate("upload")}
+              onClick={() => onNavigate("#")}
               className="group inline-flex items-center text-blue-600 font-medium hover:text-blue-700"
             >
               <span>Upload Now</span>
@@ -156,7 +156,7 @@ export default function Home() {
               anomaly detection, and clinical insights.
             </p>
             <button
-              onClick={() => onNavigate("reports")}
+              onClick={() => onNavigate("#")}
               className="group inline-flex items-center text-blue-600 font-medium hover:text-blue-700"
             >
               <span>View Reports</span>
@@ -177,7 +177,7 @@ export default function Home() {
               recognition and anomaly detection in brain activity.
             </p>
             <button
-              onClick={() => onNavigate("learn-more")}
+              onClick={() => onNavigate("#")}
               className="group inline-flex items-center text-blue-600 font-medium hover:text-blue-700"
             >
               <span>Learn More</span>
