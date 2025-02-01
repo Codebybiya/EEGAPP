@@ -139,7 +139,7 @@ function App() {
               element={
                 <div className="text-center py-20">
                   <h2 className="text-4xl font-bold text-gray-900 mb-4">
-                    404 - Page Not Found
+                    Comming soon
                   </h2>
                   <p className="text-gray-600 mb-8">
                     The page you're looking for doesn't exist.
