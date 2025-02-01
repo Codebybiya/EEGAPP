@@ -79,7 +79,7 @@ function App() {
               <Link to="/" className="flex items-center space-x-2 group">
                 <Brain className="w-8 h-8 text-blue-600 transition-transform group-hover:scale-110" />
                 <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                  NeuroAnalyzer
+                  EEG Analyzer
                 </span>
               </Link>
 
