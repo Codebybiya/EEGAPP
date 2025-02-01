@@ -67,7 +67,7 @@ export default function Dashboard({
     setLoading(true);
     setError(null);
     try {
-      // Fetch CSV file from the data folder
+      // Fetch CSV file from the public/data folder
       const response = await fetch(`/data/${filename}.csv`);
       if (!response.ok) {
         throw new Error(`Failed to load ${filename}.csv`);
@@ -96,7 +96,6 @@ export default function Dashboard({
       setLoading(false);
     }
   };
-
   useEffect(() => {
     loadData(selectedFile);
   }, [selectedFile]);
