@@ -29,22 +29,6 @@ export default function Home() {
       action: "Upload Now",
       path: "/upload",
     },
-    {
-      icon: <FileText className="w-7 h-7" />,
-      title: "Smart Reports",
-      description:
-        "Generate comprehensive reports with advanced visualizations, anomaly detection, and clinical insights.",
-      action: "View Reports",
-      path: "/reports",
-    },
-    {
-      icon: <Brain className="w-7 h-7" />,
-      title: "AI-Powered Analysis",
-      description:
-        "Leverage cutting-edge AI algorithms for precise pattern recognition and anomaly detection in brain activity.",
-      action: "Learn More",
-      path: "/learn-more",
-    },
   ];
 
   const benefits = [
@@ -111,35 +95,6 @@ export default function Home() {
                   <ChevronRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
                   <span className="absolute inset-0 bg-white/20 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"></span>
                 </button>
-                <button
-                  onClick={() => navigate("/demo")}
-                  className="group px-8 py-4 border-2 border-blue-600 text-blue-600 rounded-xl hover:bg-blue-50 transition-all flex items-center justify-center space-x-2"
-                >
-                  <span>Watch Demo</span>
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </button>
-              </div>
-
-              <div className="flex items-center space-x-8 pt-8">
-                <div className="flex -space-x-4">
-                  {[
-                    "https://images.unsplash.com/photo-1494790108377-be9c29b29330",
-                    "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde",
-                    "https://images.unsplash.com/photo-1580489944761-15a19d654956",
-                    "https://images.unsplash.com/photo-1633332755192-727a05c4013d",
-                  ].map((url, i) => (
-                    <img
-                      key={i}
-                      src={`${url}?auto=format&fit=crop&w=80&h=80`}
-                      alt={`User ${i + 1}`}
-                      className="w-10 h-10 rounded-full border-2 border-white object-cover"
-                    />
-                  ))}
-                </div>
-                <div className="text-sm text-gray-600">
-                  <span className="font-semibold text-blue-600">4.9/5</span>{" "}
-                  from over 1,000+ reviews
-                </div>
               </div>
             </div>
 
@@ -178,25 +133,9 @@ export default function Home() {
         </div>
 
         {/* Stats Section */}
-        <div className="max-w-7xl mx-auto mt-20 py-12 px-8 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow-lg text-white">
-          <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="text-4xl font-bold">100K+</div>
-              <div className="text-blue-100 mt-2">EEG Scans Analyzed</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold">99.9%</div>
-              <div className="text-blue-100 mt-2">Accuracy Rate</div>
-            </div>
-            <div className="text-center">
-              <div className="text-4xl font-bold">50+</div>
-              <div className="text-blue-100 mt-2">Research Institutions</div>
-            </div>
-          </div>
-        </div>
 
         {/* Features Section */}
-        <div className="grid md:grid-cols-3 gap-8 mt-20">
+        <div className="grid md:grid-cols-1 gap-8 mt-20">
           {features.map((feature, index) => (
             <div
               key={index}
