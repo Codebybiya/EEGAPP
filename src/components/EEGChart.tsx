@@ -43,7 +43,9 @@ export const EEGChart: React.FC<EEGChartProps> = ({
     )
     .map((point) => ({
       ...point,
-      [channel]: point[channel as keyof EEGData] * amplitudeScale - index * 15,
+      [channel]: point[channel]
+        ? point[channel] * amplitudeScale - index * 100
+        : 0,
     }));
 
   const zoom = () => {
@@ -84,11 +86,11 @@ export const EEGChart: React.FC<EEGChartProps> = ({
   };
 
   return (
-    <div className="w-full h-16 relative group">
-      <div className="absolute left-0 top-1/2 transform -translate-y-1/2 w-12 text-xs font-mono">
+    <div className="w-full h-24 relative group">
+      <div className="absolute left-2 top-1/2 transform -translate-y-1/2 w-12 text-xs font-mono text-gray-600 z-10">
         {channel}
       </div>
-      <div className="ml-12 h-full relative">
+      <div className="absolute inset-0 ml-14">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart
             data={filteredData}
@@ -105,31 +107,39 @@ export const EEGChart: React.FC<EEGChartProps> = ({
             }}
             onMouseUp={zoom}
             onMouseLeave={() => setHoveredValue(null)}
+            margin={{ top: 5, right: 30, bottom: 5, left: 10 }}
           >
             <XAxis
               dataKey="timestamp"
-              hide={true}
+              type="number"
               domain={zoomIn ? [left!, right!] : ["auto", "auto"]}
+              tick={{ fontSize: 10 }}
+              stroke="#94a3b8"
+              hide
             />
-            <YAxis hide={true} domain={["auto", "auto"]} />
+            <YAxis
+              domain={["auto", "auto"]}
+              tick={{ fontSize: 10 }}
+              stroke="#94a3b8"
+              hide
+            />
             <Tooltip content={<CustomTooltip />} />
 
-            {/* Frequency bands */}
             {showFrequencyBands && (
               <>
                 <ReferenceLine y={0} stroke="#E5E7EB" strokeDasharray="3 3" />
-                <ReferenceLine y={5} stroke="#E5E7EB" strokeDasharray="3 3" />
-                <ReferenceLine y={-5} stroke="#E5E7EB" strokeDasharray="3 3" />
+                <ReferenceLine y={50} stroke="#E5E7EB" strokeDasharray="3 3" />
+                <ReferenceLine y={-50} stroke="#E5E7EB" strokeDasharray="3 3" />
               </>
             )}
 
             <Line
-              type="linear"
+              type="monotone"
               dataKey={channel}
               stroke="#2563eb"
               dot={false}
               isAnimationActive={false}
-              strokeWidth={0.75}
+              strokeWidth={1}
             />
 
             {refAreaLeft && refAreaRight ? (
