@@ -24,6 +24,8 @@ import {
   Gauge,
   BarChart3,
   LineChart,
+  Settings,
+  Zap,
 } from "lucide-react";
 
 const files = Array.from(
@@ -59,7 +61,6 @@ const analysisSteps = [
   },
 ];
 
-// Standard EEG channels
 const standardChannels = [
   "FP1",
   "FP2",
@@ -82,7 +83,6 @@ const standardChannels = [
   "PZ",
 ];
 
-// Sample data generator for demonstration
 const generateSampleData = (duration: number = 1000): EEGData[] => {
   const data: EEGData[] = [];
   for (let i = 0; i < duration; i++) {
@@ -90,7 +90,6 @@ const generateSampleData = (duration: number = 1000): EEGData[] => {
       timestamp: i,
     };
     standardChannels.forEach((channel) => {
-      // Generate a sine wave with some noise
       dataPoint[channel] = Math.sin(i * 0.1) * 50 + (Math.random() - 0.5) * 20;
     });
     data.push(dataPoint);
@@ -120,6 +119,7 @@ function App() {
     "idle" | "loading" | "success" | "error"
   >("idle");
   const [analysisStep, setAnalysisStep] = useState<number>(0);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     if (selectedPresetFile) {
@@ -131,17 +131,14 @@ function App() {
     setLoading(true);
     setError(null);
     try {
-      // Generate sample data instead of loading from file
       const sampleData = generateSampleData(1000);
       setData(sampleData);
       setUploadedFileName(`${filename}.csv`);
 
-      // Organize and set channels
       const organized = organizeChannels(standardChannels);
       setChannelGroups(organized);
       setSelectedChannels(organized.available);
 
-      // Update time window based on data length
       setTimeWindow([0, sampleData.length - 1]);
     } catch (err: any) {
       console.error("Error loading preset data:", err);
@@ -167,7 +164,7 @@ function App() {
     setError(null);
     setUploadedFileName(file.name);
     setSelectedFile(file);
-    setSelectedPresetFile(""); // Clear preset selection when uploading
+    setSelectedPresetFile("");
 
     try {
       const fileExtension = file.name.split(".").pop()?.toLowerCase();
@@ -237,11 +234,9 @@ function App() {
       let response;
 
       if (selectedFile) {
-        // For uploaded files, use the upload endpoint
         const formData = new FormData();
         formData.append("file", selectedFile);
 
-        // Add processed data
         const headers = ["timestamp", ...selectedChannels];
         const csvRows = [headers.join(",")];
 
@@ -253,15 +248,10 @@ function App() {
         });
 
         const processedContent = csvRows.join("\n");
-        const processedFile = new File(
-          [processedContent],
-          "processed_data.csv",
-          { type: "text/csv" }
-        );
+        const processedFile = new File([processedContent], selectedFile.name, {
+          type: "text/csv",
+        });
         formData.append("processed_file", processedFile);
-
-        // Add selected channels
-        formData.append("selected_channels", JSON.stringify(selectedChannels));
 
         response = await fetch(
           "https://web-production-6e93.up.railway.app/upload-and-analyze-eeg",
@@ -271,23 +261,23 @@ function App() {
           }
         );
       } else {
-        // For preset files, use the analyze endpoint
-        const requestBody = JSON.stringify({
-          filename: `${selectedPresetFile}.csv`,
-          selected_channels: selectedChannels,
-        });
-
+        const filename = `${selectedPresetFile}.csv`;
         response = await fetch(
-          "https://eeg-analyzer-production.up.railway.app/analyze-eeg",
+          "https://web-production-6e93.up.railway.app/analyze-eeg",
           {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: requestBody,
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              filename: filename,
+              preset_file: filename,
+              selected_channels: selectedChannels,
+            }),
           }
         );
       }
 
-      // Simulate progress through analysis steps
       const progressInterval = setInterval(() => {
         setAnalysisStep((prev) =>
           prev < analysisSteps.length - 1 ? prev + 1 : prev
@@ -305,12 +295,13 @@ function App() {
       const result = await response.json();
       setAnalysisStatus("success");
 
-      // Show success message briefly before navigating
       setTimeout(() => {
         navigate("/report", {
           state: {
             files: result.files,
-            originalFileName: uploadedFileName,
+            originalFileName: selectedFile
+              ? selectedFile.name
+              : `${selectedPresetFile}.csv`,
           },
         });
       }, 1500);
@@ -324,197 +315,257 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6">
-      <div className="max-w-7xl mx-auto bg-white rounded-xl shadow-sm">
-        {/* Header */}
-        <div className="p-6 border-b">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <Brain className="w-6 h-6 text-blue-600" />
-              <h2 className="text-xl font-bold text-gray-800">
-                EEG Signal Analysis
-              </h2>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/30 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Page Title */}
+        <div className="mb-8 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              <Brain className="w-12 h-12 text-blue-600" />
+              <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white animate-pulse" />
             </div>
-            <div className="flex items-center gap-4">
-              <select
-                value={selectedPresetFile}
-                onChange={(e) => setSelectedPresetFile(e.target.value)}
-                className="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                disabled={loading}
-              >
-                <option value="">Choose a preset file...</option>
-                {files.map((file) => (
-                  <option key={file} value={file}>
-                    Subject {file.substring(1)}
-                  </option>
-                ))}
-              </select>
-              <div className="relative group">
-                <button
-                  className="p-2 text-gray-500 hover:text-gray-700 rounded-full hover:bg-gray-100"
-                  title="File Format Help"
+            <div>
+              <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                EEG Analysis Platform
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Advanced Neural Signal Processing & Analysis
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <button
+              onClick={handleAnalyze}
+              disabled={loading || analyzing || !data.length}
+              className="group relative flex items-center gap-3 px-8 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg"
+            >
+              {analyzing ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span className="font-medium">Processing Analysis...</span>
+                </>
+              ) : (
+                <>
+                  <Zap className="w-5 h-5 transition-transform group-hover:scale-110" />
+                  <span className="font-medium">Start Analysis</span>
+                </>
+              )}
+              <div className="absolute inset-0 rounded-xl bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+          </div>
+        </div>
+
+        {/* Main Content Card */}
+        <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200/50">
+          {/* Controls Section */}
+          <div className="p-8 border-b border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              {/* Data Source */}
+              {/* Data Source Section */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    Data Source
+                  </h2>
+                  <div className="relative group">
+                    <HelpCircle className="w-5 h-5 text-gray-400 cursor-help" />
+                    <div className="absolute left-0 top-full mt-2 w-64 p-3 bg-white rounded-lg shadow-lg border border-gray-200 hidden group-hover:block z-10">
+                      <p className="text-sm text-gray-600">
+                        Select a preset file or upload your own EEG data file
+                        (CSV or Excel)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <select
+                  value={selectedPresetFile}
+                  onChange={(e) => setSelectedPresetFile(e.target.value)}
+                  className="w-full px-4 py-2.5 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                  disabled={loading}
                 >
-                  <HelpCircle className="w-5 h-5" />
-                </button>
-                <div className="absolute right-0 top-full mt-2 w-80 p-4 bg-white rounded-lg shadow-lg border border-gray-200 hidden group-hover:block z-10">
-                  <h4 className="font-medium text-gray-900 mb-2">
-                    Supported File Formats:
-                  </h4>
-                  <ul className="text-sm text-gray-600 space-y-2">
-                    <li>• CSV files (.csv)</li>
-                    <li>• Excel files (.xlsx, .xls)</li>
-                    <li>• Must have a timestamp/time column</li>
-                    <li>
-                      • Channel names should match standard EEG positions (e.g.,
-                      FP1, FP2, F3, etc.)
-                    </li>
-                    <li>• Values should be numeric</li>
-                  </ul>
-                </div>
-              </div>
-              <input
-                type="file"
-                ref={fileInputRef}
-                onChange={handleFileUpload}
-                accept=".csv,.xlsx,.xls"
-                className="hidden"
-              />
-              <button
-                onClick={() => fileInputRef.current?.click()}
-                disabled={loading}
-                className="flex items-center gap-2 px-4 py-2 text-sm bg-green-600 text-white rounded-md hover:bg-green-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Upload className="w-4 h-4" />
-                Upload File
-              </button>
-              <button
-                onClick={handleAnalyze}
-                disabled={loading || analyzing || !data.length}
-                className="flex items-center gap-2 px-6 py-2 text-sm bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-md hover:from-blue-700 hover:to-indigo-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
-              >
-                {analyzing ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <Activity className="w-4 h-4" />
-                    Analyze EEG
-                  </>
-                )}
-              </button>
-              <button
-                onClick={() => setShowFrequencyBands(!showFrequencyBands)}
-                className="flex items-center gap-2 px-3 py-1.5 text-sm bg-blue-100 text-blue-600 rounded-md hover:bg-blue-200 transition-colors"
-                disabled={loading}
-              >
-                <Filter className="w-4 h-4" />
-                Frequency Bands
-              </button>
-            </div>
-          </div>
-
-          {uploadedFileName && (
-            <div className="mt-4 flex items-center gap-2 text-sm text-gray-600">
-              <FileSpreadsheet className="w-4 h-4" />
-              <span>Current file: {uploadedFileName}</span>
-            </div>
-          )}
-
-          {error && (
-            <div className="mt-4 flex items-center gap-2 text-sm text-red-600 bg-red-50 p-3 rounded-md">
-              <AlertCircle className="w-4 h-4" />
-              <span className="whitespace-pre-line">{error}</span>
-            </div>
-          )}
-
-          {/* Controls */}
-          <div className="mt-4 flex items-center gap-6">
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-600">Amplitude Scale:</label>
-              <input
-                type="range"
-                min="0.1"
-                max="10"
-                step="0.1"
-                value={amplitudeScale}
-                onChange={(e) => setAmplitudeScale(parseFloat(e.target.value))}
-                className="w-32"
-              />
-              <span className="text-sm text-gray-600">{amplitudeScale}x</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-600">Time Window:</label>
-              <input
-                type="number"
-                value={timeWindow[0]}
-                onChange={(e) =>
-                  setTimeWindow([parseInt(e.target.value), timeWindow[1]])
-                }
-                className="w-20 px-2 py-1 border rounded"
-              />
-              <span>-</span>
-              <input
-                type="number"
-                value={timeWindow[1]}
-                onChange={(e) =>
-                  setTimeWindow([timeWindow[0], parseInt(e.target.value)])
-                }
-                className="w-20 px-2 py-1 border rounded"
-              />
-              <span className="text-sm text-gray-600">ms</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Channel Selection */}
-        <div className="px-6 py-4 border-b bg-gray-50">
-          <ChannelSelector
-            groups={channelGroups.groups}
-            selectedChannels={selectedChannels}
-            onToggleChannel={toggleChannel}
-          />
-        </div>
-
-        {/* EEG Charts */}
-        <div className="p-4">
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-8 h-8 text-blue-600 animate-spin" />
-              <span className="ml-3 text-gray-600">Loading data...</span>
-            </div>
-          ) : data.length > 0 ? (
-            <div className="space-y-0 divide-y divide-gray-100">
-              {selectedChannels.map((channel, index) => (
-                <EEGChart
-                  key={channel}
-                  data={data}
-                  channel={channel}
-                  index={index}
-                  amplitudeScale={amplitudeScale}
-                  timeWindow={timeWindow}
-                  showFrequencyBands={showFrequencyBands}
-                />
-              ))}
-              <div className="h-6 relative pt-2">
-                <div className="absolute bottom-0 left-14 right-8 flex justify-between text-xs text-gray-500">
-                  {[...Array(9)].map((_, i) => (
-                    <span key={i}>{i * 1000}ms</span>
+                  <option value="">Choose a preset file...</option>
+                  {files.map((file) => (
+                    <option key={file} value={file}>
+                      Subject {file.substring(1)}
+                    </option>
                   ))}
+                </select>
+
+                <div className="flex items-center gap-3">
+                  {/* File Upload Label */}
+                  <label
+                    htmlFor="eeg-file-upload"
+                    className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl hover:from-green-700 hover:to-emerald-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-md hover:shadow-lg cursor-pointer relative group"
+                  >
+                    <Upload className="w-5 h-5 transition-transform group-hover:scale-110" />
+                    Upload EEG File
+                    <div className="absolute inset-0 rounded-xl bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </label>
+
+                  <button
+                    onClick={() => setShowFrequencyBands(!showFrequencyBands)}
+                    className={`relative group flex items-center gap-2 px-4 py-2.5 text-sm rounded-xl transition-all ${
+                      showFrequencyBands
+                        ? "bg-blue-600 text-white hover:bg-blue-700"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                    disabled={loading}
+                  >
+                    <Filter className="w-5 h-5 transition-transform group-hover:scale-110" />
+                    Frequency Bands
+                    {showFrequencyBands && (
+                      <div className="absolute inset-0 rounded-xl bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    )}
+                  </button>
+                </div>
+
+                {/* Hidden File Input */}
+                <input
+                  id="eeg-file-upload"
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileUpload}
+                  accept=".csv,.xlsx,.xls"
+                  className="hidden"
+                />
+              </div>
+
+              {/* Amplitude Scale */}
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Signal Amplitude
+                </h2>
+                <div className="flex items-center gap-4">
+                  <input
+                    type="range"
+                    min="0.1"
+                    max="10"
+                    step="0.1"
+                    value={amplitudeScale}
+                    onChange={(e) =>
+                      setAmplitudeScale(parseFloat(e.target.value))
+                    }
+                    className="flex-1"
+                  />
+                  <span className="text-sm font-medium text-gray-900 w-16 text-center px-3 py-1 bg-gray-100 rounded-lg">
+                    {amplitudeScale}x
+                  </span>
+                </div>
+              </div>
+
+              {/* Time Window */}
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold text-gray-900">
+                  Time Window
+                </h2>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm text-gray-600 mb-1.5 block">
+                      Start (ms)
+                    </label>
+                    <input
+                      type="number"
+                      value={timeWindow[0]}
+                      onChange={(e) =>
+                        setTimeWindow([parseInt(e.target.value), timeWindow[1]])
+                      }
+                      className="w-full px-4 py-2 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-sm text-gray-600 mb-1.5 block">
+                      End (ms)
+                    </label>
+                    <input
+                      type="number"
+                      value={timeWindow[1]}
+                      onChange={(e) =>
+                        setTimeWindow([timeWindow[0], parseInt(e.target.value)])
+                      }
+                      className="w-full px-4 py-2 text-sm border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
-          ) : (
-            <div className="text-center py-12 text-gray-500">
-              No data available. Please upload a file or select a preset to
-              begin analysis.
-            </div>
-          )}
+
+            {/* File Info & Errors */}
+            {uploadedFileName && (
+              <div className="mt-6 flex items-center gap-2 px-4 py-3 bg-blue-50 text-blue-700 rounded-xl border border-blue-100">
+                <FileSpreadsheet className="w-5 h-5" />
+                <span className="text-sm font-medium">{uploadedFileName}</span>
+              </div>
+            )}
+
+            {error && (
+              <div className="mt-4 flex items-center gap-3 px-4 py-3 bg-red-50 text-red-700 rounded-xl border border-red-100">
+                <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                <span className="text-sm">{error}</span>
+              </div>
+            )}
+          </div>
+
+          {/* Channel Selector */}
+          <div className="px-8 py-6 bg-white border-b border-gray-200">
+            <h2 className="text-lg font-semibold text-gray-900 mb-6">
+              EEG Channels
+            </h2>
+            <ChannelSelector
+              groups={channelGroups.groups}
+              selectedChannels={selectedChannels}
+              onToggleChannel={toggleChannel}
+            />
+          </div>
+
+          {/* Charts */}
+          <div className="bg-white p-6">
+            <h2 className="text-lg font-semibold text-gray-900 mb-6">
+              Signal Visualization
+            </h2>
+            {loading ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <Loader2 className="w-10 h-10 text-blue-600 animate-spin mx-auto mb-4" />
+                  <p className="text-gray-600">Processing EEG Data...</p>
+                </div>
+              </div>
+            ) : data.length > 0 ? (
+              <div className="space-y-0 divide-y divide-gray-100">
+                {selectedChannels.map((channel, index) => (
+                  <EEGChart
+                    key={channel}
+                    data={data}
+                    channel={channel}
+                    index={index}
+                    amplitudeScale={amplitudeScale}
+                    timeWindow={timeWindow}
+                    showFrequencyBands={showFrequencyBands}
+                  />
+                ))}
+                <div className="h-6 relative pt-2">
+                  <div className="absolute bottom-0 left-14 right-8 flex justify-between text-xs text-gray-500">
+                    {[...Array(9)].map((_, i) => (
+                      <span key={i}>{i * 1000}ms</span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-12">
+                <Brain className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+                <p className="text-gray-500">
+                  No data available. Please upload a file or select a preset to
+                  begin analysis.
+                </p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Analysis Progress Modal */}
+      {/* Analysis Modal */}
       {analyzing && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="bg-white rounded-2xl max-w-md w-full mx-4 overflow-hidden shadow-xl">
