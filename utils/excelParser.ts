@@ -39,46 +39,19 @@ export const parseExcelFile = async (file: File): Promise<EEGData[]> => {
           })
           .filter(Boolean); // Remove empty headers
 
-        // Create index mapping for the data
-        let timeHeaderIndex = -1;
-        const channelIndices = new Map<number, string>();
-
-        headers.forEach((header, index) => {
-          // Check for time/index column
-          if (
-            timeHeaderIndex === -1 &&
-            (header.includes("TIME") ||
-              header.includes("INDEX") ||
-              header.includes("SAMPLE") ||
-              header === "MS" ||
-              header === "SEC")
-          ) {
-            timeHeaderIndex = index;
-          } else {
-            // Map other columns as potential channels
-            channelIndices.set(index, header);
-          }
-        });
-
-        // If no time column found, use array index
-        if (timeHeaderIndex === -1) {
-          console.log("No time column found, using array index as timestamp");
-        }
+        // Define sampling interval (in milliseconds)
+        const samplingInterval = 1; // Adjust this based on your data's sampling rate
 
         // Process data rows
         const formattedData = jsonData
           .slice(1)
           .map((row: any, index: number) => {
             const dataPoint: EEGData = {
-              // Use time column if found, otherwise use array index
-              timestamp:
-                timeHeaderIndex !== -1
-                  ? parseFloat(row[timeHeaderIndex]) || index
-                  : index,
+              timestamp: index * samplingInterval, // Generate timestamp from index
             };
 
             // Add channel data
-            channelIndices.forEach((channelName, colIndex) => {
+            headers.forEach((header, colIndex) => {
               const value = row[colIndex];
               let numValue: number | null = null;
 
@@ -90,7 +63,7 @@ export const parseExcelFile = async (file: File): Promise<EEGData[]> => {
               }
 
               if (numValue !== null && !isNaN(numValue)) {
-                dataPoint[channelName] = numValue;
+                dataPoint[header] = numValue;
               }
             });
 
@@ -106,14 +79,10 @@ export const parseExcelFile = async (file: File): Promise<EEGData[]> => {
           throw new Error("No valid data points found after parsing");
         }
 
-        // Get list of detected channels
-        const detectedChannels = Object.keys(formattedData[0])
-          .filter((key) => key !== "timestamp")
-          .map((ch) => ch.toUpperCase());
-
         console.log(
-          `Successfully parsed ${formattedData.length} data points with channels:`,
-          detectedChannels
+          `Successfully parsed ${
+            formattedData.length
+          } data points with channels: ${headers.join(", ")}`
         );
         resolve(formattedData);
       } catch (error: any) {

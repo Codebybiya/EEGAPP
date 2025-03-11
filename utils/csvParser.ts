@@ -67,17 +67,10 @@ export const parseCSVFile = async (file: File): Promise<EEGData[]> => {
             );
           }
 
-          // Check for timestamp column
-          const timeHeader = headers.find((h) =>
-            ["TIMESTAMP", "TIME", "MS", "MILLISECONDS"].includes(h)
-          );
+          // Define sampling interval (in milliseconds)
+          const samplingInterval = 1; // Adjust this based on your data's sampling rate
 
-          if (!timeHeader) {
-            throw new Error(
-              'No timestamp column found. The file must have a column named "Time" or "Timestamp".'
-            );
-          }
-
+          // Process data rows
           const formattedData = results.data
             .filter((row: any) => {
               return (
@@ -90,26 +83,24 @@ export const parseCSVFile = async (file: File): Promise<EEGData[]> => {
             })
             .map((row: any, index: number) => {
               const dataPoint: EEGData = {
-                timestamp: parseFloat(row[timeHeader]) || index,
+                timestamp: index * samplingInterval, // Generate timestamp from index
               };
 
               // Process each channel
               headers.forEach((header) => {
-                if (header !== timeHeader) {
-                  const value = row[header];
-                  let numValue: number | null = null;
+                const value = row[header];
+                let numValue: number | null = null;
 
-                  if (typeof value === "string") {
-                    // Handle various number formats
-                    const cleanValue = value.replace(/[^\d.-]/g, "");
-                    numValue = parseFloat(cleanValue);
-                  } else if (typeof value === "number") {
-                    numValue = value;
-                  }
+                if (typeof value === "string") {
+                  // Handle various number formats
+                  const cleanValue = value.replace(/[^\d.-]/g, "");
+                  numValue = parseFloat(cleanValue);
+                } else if (typeof value === "number") {
+                  numValue = value;
+                }
 
-                  if (numValue !== null && !isNaN(numValue)) {
-                    dataPoint[header] = numValue;
-                  }
+                if (numValue !== null && !isNaN(numValue)) {
+                  dataPoint[header] = numValue;
                 }
               });
 
@@ -126,54 +117,10 @@ export const parseCSVFile = async (file: File): Promise<EEGData[]> => {
             );
           }
 
-          // Validate channels
-          const expectedChannels = [
-            "FP1",
-            "FP2",
-            "F3",
-            "F4",
-            "F7",
-            "F8",
-            "T7",
-            "T8",
-            "C3",
-            "C4",
-            "T3",
-            "T4",
-            "P7",
-            "P8",
-            "P3",
-            "P4",
-            "O1",
-            "O2",
-            "FZ",
-            "CZ",
-            "PZ",
-          ];
-
-          const foundChannels = Object.keys(formattedData[0])
-            .filter((key) => key !== "timestamp")
-            .map((ch) => ch.toUpperCase());
-
-          const matchingChannels = expectedChannels.filter((ch) =>
-            foundChannels.includes(ch)
-          );
-
-          if (matchingChannels.length === 0) {
-            throw new Error(
-              `No recognized EEG channels found. Your file contains these columns: ${foundChannels.join(
-                ", "
-              )}\n\n` +
-                `Expected channel names should include some of: ${expectedChannels.join(
-                  ", "
-                )}`
-            );
-          }
-
           console.log(
             `Successfully parsed ${
               formattedData.length
-            } data points with channels: ${matchingChannels.join(", ")}`
+            } data points with channels: ${headers.join(", ")}`
           );
           resolve(formattedData);
         } catch (error: any) {
