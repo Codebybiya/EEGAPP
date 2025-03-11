@@ -135,7 +135,7 @@ export default function Home() {
         {/* Stats Section */}
 
         {/* Features Section */}
-        <div className="grid md:grid-cols-1 gap-8 mt-20">
+        {/* <div className="grid md:grid-cols-1 gap-8 mt-20">
           {features.map((feature, index) => (
             <div
               key={index}
@@ -161,7 +161,7 @@ export default function Home() {
               </button>
             </div>
           ))}
-        </div>
+        </div> */}
       </div>
     </div>
   );
