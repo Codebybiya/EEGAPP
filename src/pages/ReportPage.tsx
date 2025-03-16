@@ -1,16 +1,13 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import {
-  FileDown,
   Eye,
   AlertCircle,
   Download,
-  ChevronLeft,
-  X,
-  Brain,
-  Image as ImageIcon,
   FileText,
   ArrowLeft,
+  Image as ImageIcon,
+  X,
 } from "lucide-react";
 
 interface ReportFiles {
@@ -21,9 +18,42 @@ const ReportPage: React.FC = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const files = location.state?.files as ReportFiles | undefined;
+  const apiError = location.state?.error;
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
+  // Debugging: Log the location state
+  console.log("Location State:", location.state);
+
+  // Handle API Error (check this first)
+  if (apiError) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white rounded-xl shadow-lg p-8 max-w-2xl w-full">
+          <div className="text-center">
+            <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
+            <h2 className="text-2xl font-semibold text-gray-900 mb-4">
+              Analysis Error
+            </h2>
+            <div className="bg-red-50 border border-red-200 rounded-lg p-6 mb-6 text-left">
+              <p className="text-red-600 whitespace-pre-wrap font-mono text-sm">
+                {apiError}
+              </p>
+            </div>
+            <button
+              onClick={() => navigate("/")}
+              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Return to Analysis
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle no files case (check this after apiError)
   if (!files || Object.keys(files).length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -33,7 +63,9 @@ const ReportPage: React.FC = () => {
             No Analysis Results
           </h2>
           <p className="text-gray-600 mb-6">
-            Please upload your EEG data file and run the analysis first.
+            Failed to process EEG data: Invalid EEG data detected. Some channels
+            contain only zero values :Please verify the input data and ensure
+            all channels contain valid EEG signals.
           </p>
           <button
             onClick={() => navigate("/")}
@@ -46,7 +78,6 @@ const ReportPage: React.FC = () => {
       </div>
     );
   }
-
   const baseUrl = "https://web-production-6e93.up.railway.app";
 
   const getValidImageUrl = (url: string) => {
